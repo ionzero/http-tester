@@ -1,0 +1,65 @@
+#### Readme for http-test script ####
+
+The http-test script is a simple bash script designed to run tests against
+a web service. While you must provide the test tools, http-test provides a 
+method for distributing bundles of tests and executing them, including any
+initialization and cleanup required.  
+
+The com
+
+
+
+
+####### Test bundles for the HTTP tester #######
+
+The http test script is a very single-minded script.  It takes some options
+and sets environment variables based on them (http_proxy, no_proxy,
+host_override) and then looks in the directory it was given to begin test
+execution.
+
+A test bundle is a directory that contains everything necessary to run
+a set of tests.  You may have as many test-bundles as you like and they do
+not need to be in any special place.  You simply need to provide the 
+path to the http-test script.  
+
+A test bundle must contain at minimum a scripts/ directory.  The scripts/ 
+directory contains one or more scripts that are run by the tester.  You may 
+place any number of additional directories within the bundle and they may be
+used as you see fit.  
+
+As the distributor of the test, you need to provide at least one test script.
+This script is what runs your test set.  It should be placed in the scripts/
+directory and should be named beginning with a T and then followed by at
+least one number.  For example:  T01-test_all_the_things.sh  The script does
+not have to be a shell script, it simply has to be runnable.
+
+There are 4 types of scripts possible in the scripts directory, each one has
+it's own prefix character. The scripts are run in order, and allow you to do
+any initialization tasks or cleanup that needs to be done before and after
+test run. The prefixes are, in order of execution:
+
+   S##  -  Startup scripts 
+   T##  -  Test scripts 
+   F##  -  Finish Scripts 
+   U##  -  Unconditional finish scripts.
+
+Where ## are digits.  As you can see, you may have multiple scripts with each
+prefix, and they are executed in order of filename.  For example,
+S01-check_environment.sh is run before S22-start_express.sh.  Likewise each
+set is run before the next prefix scripts are run.  For example, 
+S22-start_express would run before T01-test_all_the_things.sh
+
+If there is an error, as determined by exit code, the entire process will be
+halted and no additional scripts will be run, except for the Unconditional
+scripts.  The Unconditional scripts are run regardless of whether the tests
+succeeded or failed.  Unconditional scripts should be used to terminate any
+long-running processes that you started, or do other mandatory cleanup of
+assets obtained or created during the rest of the test process.
+
+Special note regarding command options.  When running the http-test script,
+test arguments may be provided after the test bundle name.  These arguments
+are provided to the first S## script found in the scripts/ directory.  If 
+you do not need arguments, this can be safely ignored.  If, however, you do,
+be sure to capture the arguments within your initial script so that they
+can be used when you need them.
+

@@ -1,0 +1,182 @@
+#!/bin/bash
+
+## http test script.  Takes 
+
+function debug {
+    if [ "x${DEBUG}" != "x" ]; then
+        echo $*;
+    fi
+}
+
+function execute_script {
+    if [ ! -x $1 ]; then
+       echo "ERROR: $1 is not executable">&2
+       return 1;
+    else 
+       CMD=$1
+    fi
+    shift 
+
+    $CMD $@
+    if [ $? -ne 0 ]; then
+       echo "ERROR: $1 failed with exit code: $?" >&2
+       return 1
+    else 
+       return 0
+    fi
+}
+
+function run_test {
+    debug "Running test $1";
+
+    bundle_dir=$1
+    shift;
+
+    scripts_dir="scripts"
+    test_dir="test"
+    # process is - run scripts in order S##- first, then T##, then F##
+    debug "Changing to directory $test_dir"
+    pushd $bundle_dir
+
+    if [ ! -d tmp ]; then
+        mkdir tmp
+        chmod 775 tmp
+    fi
+
+
+    first_script_run=0
+    first_script_args=$@
+
+    failed=0;
+    debug "Running start-up commands in: ${test_dir}/scripts"
+     
+    ## Yes... That's _S_tart _T_est _F_inish _U_nconditional.  What were you thinking?
+
+    for prefix in S T F; do
+        files=`ls ${scripts_dir}/${prefix}* 2>/dev/null| sort`
+        for file in $files ; do
+            debug "Running $file"
+            if [ $first_script_run -eq 0 ]; then
+                first_script_run=1
+                execute_script $file $first_script_args
+            else 
+                execute_script $file
+            fi
+            if [ $? -ne 0 ]; then
+               break 2
+            fi
+        done
+    done
+
+    # unlike the above, U files are run Unconditionally.  They are the
+    # files that run clean up, even if everything else failed.
+    files=`ls ${scripts_dir}/U* 2>/dev/null|sort` 
+    for file in $files ; do
+        debug "Running $file"
+        execute_script $file
+    done
+
+    ## clean up the tmp directory:
+    debug "Cleaning up ${bundle_dir}/tmp..."
+    
+    popd
+
+    rm ${bundle_dir}/tmp/* 2>/dev/null
+    rmdir ${bundle_dir}/tmp 2>/dev/null
+
+}
+
+function usage {
+    echo "Usage:"
+    echo " "
+    echo "$0 [-h] [-p proxy] [-n host] [-O override] test_bundle_directory [ optional test arguments ] ";
+    echo " "
+    echo " -h             this help message"
+    echo " -p proxy       set proxy to be used for http connections"
+    echo " -s proxy       set proxy to be used for https connections"
+    echo " -n host        Do not use proxy for given host"
+    echo "                  (can be provided multiple times)"
+    echo " -O override    Override host match, format: regex:newhostname"
+    echo "                  (can be provided multiple times)"
+    echo " "
+    echo "The -p, -n and -O options set environment variables used to "
+    echo "configure common HTTP utilities.  They are: "
+    echo " "
+    echo "   -p   http_proxy"
+    echo "   -n   NO_PROXY"
+    echo "   -s   HTTPS_PROXY"
+    echo "   -O   host_override"
+    echo " "
+    echo "Note that it is up to the tests themselves to make use of "
+    echo "these options, they are not enforced in any way."
+    echo " "
+
+}
+
+
+
+
+while getopts ":p:O:n:" opt; do
+  case $opt in
+    p)
+      debug "HTTP Proxy string set to ${OPTARG}!" >&2
+      http_proxy=$OPTARG
+      ;;
+    s)
+      debug "HTTPS Proxy string set to ${OPTARG}!" >&2
+      HTTPS_PROXY=$OPTARG
+      ;;
+    n)
+      debug "no proxy set for ${OPTARG}!" >&2
+      if [ "x${NO_PROXY}" == "x" ]; then
+         NO_PROXY=$OPTARG
+      else 
+         NO_PROXY=`echo $NO_PROXY,$OPTARG`
+      fi
+      debug $no_proxy
+      ;;
+    O)
+      debug "Host Override set to: ${OPTARG}!" >&2
+      if [ "x${no_proxy}" == "x" ]; then
+         host_override=$OPTARG
+      else 
+         host_override=`echo ${host_override}\;${OPTARG}`
+      fi
+      debug $host_override
+      ;;
+    h)
+        usage
+        exit
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+# strip off any trailing /'s 
+test_directory=`echo $1| sed 's/\/*$//'`
+shift
+
+if [ "x${test_directory}" == "x" ]; then
+    usage
+    exit
+fi
+
+
+if [ ! -d $test_directory ]; then
+    echo "$test_directory not found";
+    exit 1
+else 
+    if [ -d "${test_directory}/scripts" ]; then
+        run_test $test_directory $@
+    else 
+        echo "$test_directory doesn't have a scripts subdirectory, what am I supposed to run?"
+        exit 1
+    fi
+fi
+
+## if we are here, we have a valid directory to work with.
+
+
