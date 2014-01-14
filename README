@@ -5,9 +5,28 @@ a web service. While you must provide the test tools, http-test provides a
 method for distributing bundles of tests and executing them, including any
 initialization and cleanup required.  
 
-The com
+Usage:
 
+bin/http-test [-h] [-p proxy] [-n host] [-O override] test_bundle_directory [ optional test arguments ]
 
+ -h             this help message
+ -p proxy       set proxy to be used for http connections
+ -s proxy       set proxy to be used for https connections
+ -n host        Do not use proxy for given host
+                  (can be provided multiple times)
+ -O override    Override host match, format: regex:newhostname[:port]
+                  (can be provided multiple times)
+
+The -p, -n and -O options set environment variables used to
+configure common HTTP utilities.  They are:
+
+   -p   http_proxy
+   -n   NO_PROXY
+   -s   HTTPS_PROXY
+   -O   host_override
+
+Note that it is up to the tests themselves to make use of
+these options, they are not enforced in any way.
 
 
 ####### Test bundles for the HTTP tester #######

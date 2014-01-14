@@ -96,7 +96,7 @@ function usage {
     echo " -s proxy       set proxy to be used for https connections"
     echo " -n host        Do not use proxy for given host"
     echo "                  (can be provided multiple times)"
-    echo " -O override    Override host match, format: regex:newhostname"
+    echo " -O override    Override host match, format: regex:newhostname[:port]"
     echo "                  (can be provided multiple times)"
     echo " "
     echo "The -p, -n and -O options set environment variables used to "
