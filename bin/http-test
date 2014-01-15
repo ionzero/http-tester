@@ -120,11 +120,12 @@ while getopts ":p:O:n:" opt; do
   case $opt in
     p)
       debug "HTTP Proxy string set to ${OPTARG}!" >&2
-      http_proxy=$OPTARG
+      export http_proxy=$OPTARG
       ;;
     s)
       debug "HTTPS Proxy string set to ${OPTARG}!" >&2
       HTTPS_PROXY=$OPTARG
+      export HTTPS_PROXY
       ;;
     n)
       debug "no proxy set for ${OPTARG}!" >&2
@@ -139,8 +140,10 @@ while getopts ":p:O:n:" opt; do
       debug "Host Override set to: ${OPTARG}!" >&2
       if [ "x${no_proxy}" == "x" ]; then
          host_override=$OPTARG
+         export host_overide
       else 
          host_override=`echo ${host_override}\;${OPTARG}`
+         export host_override
       fi
       debug $host_override
       ;;
