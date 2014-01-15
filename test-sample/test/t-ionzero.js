@@ -1,6 +1,6 @@
 var iz = require('iz-objects');
-iz.add_search_path('/Users/jayk/Development/IRIS/lib/');
-var HTTPEvaluator = require('../../lib/HTTPEvaluator.js');
+var izu = require('iz-utils');
+var HTTPEvaluator = iz.Module('HTTPEvaluator');
 
 var assert = require('assert');
 var util = require('util');
